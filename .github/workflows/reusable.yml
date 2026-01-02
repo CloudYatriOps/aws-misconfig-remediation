@@ -21,7 +21,7 @@ on:
       role_session_name:
         required: false
         type: string
-        default: 'gh-actions-terraform'
+        default: ''
       auto_apply:
         required: false
         type: boolean
