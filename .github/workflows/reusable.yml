@@ -45,16 +45,40 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
+      - name: Determine auth method
+        id: auth
+        run: |
+          oidc_input="${{ inputs.oidc_role_arn }}"
+          oidc_secret="${{ secrets.OIDC_ROLE_ARN }}"
+          session_input="${{ inputs.role_session_name }}"
+          session_secret="${{ secrets.ROLE_SESSION_NAME }}"
+          if [ -n "$oidc_input" ]; then
+            echo "method=oidc" >> "$GITHUB_OUTPUT"
+            echo "role_arn=$oidc_input" >> "$GITHUB_OUTPUT"
+          elif [ -n "$oidc_secret" ]; then
+            echo "method=oidc" >> "$GITHUB_OUTPUT"
+            echo "role_arn=$oidc_secret" >> "$GITHUB_OUTPUT"
+          else
+            echo "method=keys" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$session_input" ]; then
+            echo "session_name=$session_input" >> "$GITHUB_OUTPUT"
+          elif [ -n "$session_secret" ]; then
+            echo "session_name=$session_secret" >> "$GITHUB_OUTPUT"
+          else
+            echo "session_name=gh-actions-terraform" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure AWS credentials (OIDC)
-        if: ${{ inputs.oidc_role_arn != '' || secrets.OIDC_ROLE_ARN != '' }}
+        if: ${{ steps.auth.outputs.method == 'oidc' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ inputs.oidc_role_arn != '' && inputs.oidc_role_arn || secrets.OIDC_ROLE_ARN }}
-          role-session-name: ${{ inputs.role_session_name != '' && inputs.role_session_name || secrets.ROLE_SESSION_NAME || 'gh-actions-terraform' }}
+          role-to-assume: ${{ steps.auth.outputs.role_arn }}
+          role-session-name: ${{ steps.auth.outputs.session_name }}
           aws-region: ${{ inputs.aws_region }}
 
       - name: Configure AWS credentials (secrets)
-        if: ${{ inputs.oidc_role_arn == '' && secrets.OIDC_ROLE_ARN == '' }}
+        if: ${{ steps.auth.outputs.method == 'keys' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -106,16 +130,40 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
+      - name: Determine auth method (apply)
+        id: auth_apply
+        run: |
+          oidc_input="${{ inputs.oidc_role_arn }}"
+          oidc_secret="${{ secrets.OIDC_ROLE_ARN }}"
+          session_input="${{ inputs.role_session_name }}"
+          session_secret="${{ secrets.ROLE_SESSION_NAME }}"
+          if [ -n "$oidc_input" ]; then
+            echo "method=oidc" >> "$GITHUB_OUTPUT"
+            echo "role_arn=$oidc_input" >> "$GITHUB_OUTPUT"
+          elif [ -n "$oidc_secret" ]; then
+            echo "method=oidc" >> "$GITHUB_OUTPUT"
+            echo "role_arn=$oidc_secret" >> "$GITHUB_OUTPUT"
+          else
+            echo "method=keys" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$session_input" ]; then
+            echo "session_name=$session_input" >> "$GITHUB_OUTPUT"
+          elif [ -n "$session_secret" ]; then
+            echo "session_name=$session_secret" >> "$GITHUB_OUTPUT"
+          else
+            echo "session_name=gh-actions-terraform" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure AWS credentials (OIDC)
-        if: ${{ inputs.oidc_role_arn != '' || secrets.OIDC_ROLE_ARN != '' }}
+        if: ${{ steps.auth_apply.outputs.method == 'oidc' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ inputs.oidc_role_arn != '' && inputs.oidc_role_arn || secrets.OIDC_ROLE_ARN }}
-          role-session-name: ${{ inputs.role_session_name != '' && inputs.role_session_name || secrets.ROLE_SESSION_NAME || 'gh-actions-terraform' }}
+          role-to-assume: ${{ steps.auth_apply.outputs.role_arn }}
+          role-session-name: ${{ steps.auth_apply.outputs.session_name }}
           aws-region: ${{ inputs.aws_region }}
 
       - name: Configure AWS credentials (secrets)
-        if: ${{ inputs.oidc_role_arn == '' && secrets.OIDC_ROLE_ARN == '' }}
+        if: ${{ steps.auth_apply.outputs.method == 'keys' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
