@@ -8,5 +8,5 @@ output "current_account_id" {
 
 output "access_analyzers" {
   description = "Organization-level Access Analyzers created per region"
-  value = aws_accessanalyzer_analyzer.this[0].arn
+  value       = aws_accessanalyzer_analyzer.this[0].arn
 }

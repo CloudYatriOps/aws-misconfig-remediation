@@ -12,8 +12,8 @@ resource "aws_secretsmanager_secret_version" "this" {
 }
 
 resource "aws_secretsmanager_secret_rotation" "this" {
-  count               = var.rotation_enabled ? 1 : 0
-  secret_id           = aws_secretsmanager_secret.this.id
+  count     = var.rotation_enabled ? 1 : 0
+  secret_id = aws_secretsmanager_secret.this.id
   rotation_lambda_arn = var.rotation_lambda_arn != "" ? var.rotation_lambda_arn : (
     var.create_rotation_lambda ? aws_lambda_function.rotation_lambda[0].arn : ""
   )

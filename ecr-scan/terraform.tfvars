@@ -1,4 +1,4 @@
-region = "us-west-2"
+region             = "us-west-2"
 registry_scan_type = "BASIC"
-tags = { Owner = "team" }
+tags               = { Owner = "team" }
 
