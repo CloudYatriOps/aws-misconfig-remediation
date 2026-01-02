@@ -1,0 +1,4 @@
+from nginx:latest
+LABEL description="Test image for ECR scanning"
+
+CMD ["echo", "Hello from ECR scan! ✅"]

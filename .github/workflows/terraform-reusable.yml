@@ -1,0 +1,92 @@
+name: "Reusable Terraform workflow"
+
+on:
+  workflow_call:
+    inputs:
+      tf_working_dir:
+        required: true
+        type: string
+      aws_region:
+        required: false
+        type: string
+        default: 'us-east-1'
+      terraform_version:
+        required: false
+        type: string
+        default: '1.5.7'
+      auto_apply:
+        required: false
+        type: boolean
+        default: false
+      apply_environment:
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      plan-name: tfplan-${{ inputs.tf_working_dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Terraform Init
+        working-directory: ${{ inputs.tf_working_dir }}
+        run: terraform init -input=false -no-color
+
+      - name: Terraform Validate
+        working-directory: ${{ inputs.tf_working_dir }}
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        working-directory: ${{ inputs.tf_working_dir }}
+              - name: Terraform Fmt (check)
+                working-directory: ${{ inputs.tf_working_dir }}
+                run: terraform fmt -check -recursive
+        run: terraform plan -input=false -out=tfplan -no-color
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.plan.outputs.plan-name }}
+          path: ${{ inputs.tf_working_dir }}/tfplan
+
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    if: ${{ inputs.auto_apply == true }}
+    environment: ${{ inputs.apply_environment || 'terraform-apply' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.plan.outputs.plan-name }}
+
+      - name: Terraform Apply
+        working-directory: ${{ inputs.tf_working_dir }}
+        run: terraform apply -input=false -auto-approve tfplan -no-color

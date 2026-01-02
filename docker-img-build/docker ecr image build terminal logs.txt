@@ -1,0 +1,109 @@
+***********************************************************
+Prepare a simple Dockerfile
+***********************************************************
+AzureAD+KaranParmar@DESKTOP-U5RN7K6 MINGW64 ~/Winfo Solutions/DBA Group - Documents/Project/FSAI/FPS Tasks/terraform
+$ mkdir docker-img-build
+
+AzureAD+KaranParmar@DESKTOP-U5RN7K6 MINGW64 ~/Winfo Solutions/DBA Group - Documents/Project/FSAI/FPS Tasks/terraform
+$ cd ./docker-img-build/
+
+AzureAD+KaranParmar@DESKTOP-U5RN7K6 MINGW64 ~/Winfo Solutions/DBA Group - Documents/Project/FSAI/FPS Tasks/terraform/docker-img-build
+$ vi dockerfile
+```
+# Use a small base image
+FROM nginx:latest
+
+# Just run a simple command (for testing)
+CMD ["echo", "Hello from ECR scan test!"]
+```
+***********************************************************
+Build your Docker image locally
+***********************************************************
+AzureAD+KaranParmar@DESKTOP-U5RN7K6 MINGW64 ~/Winfo Solutions/DBA Group - Documents/Project/FSAI/FPS Tasks/terraform/docker-img-build
+$ docker build -t kp-image .
+[+] Building 10.1s (6/6) FINISHED                                               docker:desktop-linux
+ => [internal] load build definition from dockerfile                                            0.1s
+ => => transferring dockerfile: 98B                                                             0.0s 
+ => WARN: ConsistentInstructionCasing: Command 'from' should match the case of the command maj  0.1s 
+ => [internal] load metadata for docker.io/library/nginx:latest                                 5.1s
+ => [auth] library/nginx:pull token for registry-1.docker.io                                    0.0s
+ => [internal] load .dockerignore                                                               0.0s
+ => => transferring context: 2B                                                                 0.0s 
+ => [1/1] FROM docker.io/library/nginx:latest@sha256:ca871a86d45a3ec6864dc45f014b11fe626145569  3.3s 
+ => => resolve docker.io/library/nginx:latest@sha256:ca871a86d45a3ec6864dc45f014b11fe626145569  0.0s 
+ => => sha256:99ae2d6d05ef5203709c239051994c6b2ee90747b8adc2c883544c6dc0064d8a 955B / 955B      0.6s
+ => => sha256:d03ca78f31febb8f2ba285ba9c2547eb66dbbbc8cc3f8bd76305d67fbafcbe9b 1.21kB / 1.21kB  0.8s 
+ => => sha256:a2b00848867934ffcbfa9616c7270be78dcc53f9c932c90755a5467a8af75d84 405B / 405B      1.0s 
+ => => sha256:35df28ad102658dd2661f97d891342916a766b37d638ef196d7e10f953065fc7 627B / 627B      1.0s 
+ => => sha256:d6799cf0ce70324edaafce41cf70d3483ec2104742f5657bf75729081110cc32 1.40kB / 1.40kB  0.6s 
+ => => sha256:dcea87ab9c4af08933def1f0ca20657cd60a28e8821acd12f28c47dbe7c44c 29.99MB / 29.99MB  2.1s 
+ => => sha256:02d7611c4eae219af91448a4720bdba036575d3bc0356cfe12774af85daa6a 29.78MB / 29.78MB  2.1s 
+ => exporting to image                                                                          4.6s
+ => => exporting layers                                                                         0.0s
+ => => exporting manifest sha256:5cae4207d59824556bd3a2535232a57e7a030bcce11f0d409f49cdb9206e0  0.0s 
+ => => exporting config sha256:bd28d1ce603e1173c227cd3a846d05f72ff98b678932ad45b9c1d2bbf05738c  0.0s 
+ => => exporting attestation manifest sha256:e9c9b3f76092884e58ac5203fa63046d967305356f7df2ccf  0.0s 
+ => => exporting manifest list sha256:6e99c7c852a9914a97072be77ded48a681872e61c9003ec96b766bc4  0.0s 
+ => => naming to docker.io/library/kp-image:latest                                              0.0s 
+ => => unpacking to docker.io/library/kp-image:latest                                           4.5s 
+
+ 1 warning found (use docker --debug to expand):
+ - ConsistentInstructionCasing: Command 'from' should match the case of the command majority (uppercase) (line 1)
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/smru1ev16h2iwub3uzz1gxr5m
+
+
+
+***********************************************************
+Authenticate Docker to your ECR registry
+***********************************************************
+$ aws ecr get-login-password --region us-west-2 --profile "AdministratorAccess-803103365620" | docker
+ login --username AWS --password-stdin 803103365620.dkr.ecr.us-west-2.amazonaws.com
+Login Succeeded
+
+
+
+***********************************************************
+Tag your image for your ECR repo
+***********************************************************
+$ docker tag kp-image:latest 803103365620.dkr.ecr.us-west-2.amazonaws.com/kp/fsai-test:latest
+  
+
+***********************************************************
+Push your image to ECR
+***********************************************************
+$ docker push 803103365620.dkr.ecr.us-west-2.amazonaws.com/kp/fsai-test:latest
+The push refers to repository [803103365620.dkr.ecr.us-west-2.amazonaws.com/kp/fsai-test]
+99ae2d6d05ef: Pushed
+8243d473a171: Pushed
+d6799cf0ce70: Pushed
+35df28ad1026: Pushed
+a2b008488679: Pushed
+d03ca78f31fe: Pushed
+02d7611c4eae: Pushed
+dcea87ab9c4a: Pushed
+latest: digest: sha256:6e99c7c852a9914a97072be77ded48a681872e61c9003ec96b766bc42283a9bc size: 856
+
+
+
+***********************************************************
+Verify registry scaning config
+***********************************************************
+$ aws ecr get-registry-scanning-configuration
+{
+    "registryId": "803103365620",
+    "scanningConfiguration": {
+        "scanType": "BASIC",
+        "rules": [
+            {
+                "scanFrequency": "SCAN_ON_PUSH",
+                "repositoryFilters": [
+                    {
+                        "filter": "*",
+                        "filterType": "WILDCARD"
+                    }
+                ]
+            }
+        ]
+    }
+}
