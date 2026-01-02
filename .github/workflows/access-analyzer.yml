@@ -42,7 +42,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     with:
       tf_working_dir: access-analyzer
-      aws_region: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.aws_region) || 'us-west-2' }}
+      aws_region: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.aws_region) || 'us-west-1' }}
       terraform_version: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.terraform_version) || '1.5.7' }}
       auto_apply: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apply }}
       apply_environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.apply_environment) || 'terraform-apply' }}
