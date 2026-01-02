@@ -82,6 +82,11 @@ jobs:
             echo "session_name=gh-actions-terraform" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Debug resolved role ARN
+        run: |
+          echo "Resolved role ARN:"
+          echo "${{ steps.auth.outputs.role_arn }}"
+
       - name: Configure AWS credentials (OIDC)
         if: ${{ steps.auth.outputs.method == 'oidc' }}
         uses: aws-actions/configure-aws-credentials@v4
