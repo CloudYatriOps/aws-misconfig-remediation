@@ -37,5 +37,5 @@ jobs:
       terraform_version: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.terraform_version) || '' }}
       auto_apply: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apply }}
       apply_environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.apply_environment) || '' }}
-      oidc_role_arn: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.oidc_role_arn) || secrets.OIDC_ROLE_ARN || '' }}
-      role_session_name: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.role_session_name) || secrets.ROLE_SESSION_NAME || '' }}
+      oidc_role_arn: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.oidc_role_arn) || '' }}
+      role_session_name: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.role_session_name) || '' }}
