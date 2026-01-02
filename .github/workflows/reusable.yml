@@ -1,5 +1,9 @@
 name: "Reusable Terraform workflow"
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   workflow_call:
     inputs:
@@ -80,7 +84,7 @@ jobs:
 
       - name: Configure AWS credentials (OIDC)
         if: ${{ steps.auth.outputs.method == 'oidc' }}
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.auth.outputs.role_arn }}
           role-session-name: ${{ steps.auth.outputs.session_name }}

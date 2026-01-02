@@ -1,5 +1,9 @@
 name: "access-analyzer"
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   push:
     branches: [ 'main' ]
