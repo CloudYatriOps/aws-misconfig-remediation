@@ -1,0 +1,41 @@
+name: "caller-workflow-template"
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Set to true to run apply (manual dispatch only)'
+        required: false
+        type: boolean
+      terraform_version:
+        description: 'Terraform version to use (optional)'
+        required: false
+        type: string
+      aws_region:
+        description: 'AWS region to use (optional)'
+        required: false
+        type: string
+      apply_environment:
+        description: 'Environment name for apply approvals (optional)'
+        required: false
+        type: string
+      oidc_role_arn:
+        description: 'Optional OIDC role ARN to assume'
+        required: false
+        type: string
+      role_session_name:
+        description: 'Optional session name for assumed role'
+        required: false
+        type: string
+
+jobs:
+  call-reusable:
+    uses: ./.github/workflows/reusable.yml
+    with:
+      tf_working_dir: NEW-FOLDER-NAME
+      aws_region: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.aws_region) || '' }}
+      terraform_version: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.terraform_version) || '' }}
+      auto_apply: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apply }}
+      apply_environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.apply_environment) || '' }}
+      oidc_role_arn: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.oidc_role_arn) || secrets.OIDC_ROLE_ARN || '' }}
+      role_session_name: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.role_session_name) || secrets.ROLE_SESSION_NAME || '' }}

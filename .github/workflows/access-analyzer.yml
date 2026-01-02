@@ -10,30 +10,36 @@ on:
       apply:
         description: 'Apply changes after plan'
         required: false
-        default: false
         type: boolean
       terraform_version:
         description: 'Terraform version to use'
         required: false
-        default: '1.5.7'
         type: string
       aws_region:
         description: 'AWS region to use'
         required: false
-        default: 'us-east-1'
         type: string
       apply_environment:
         description: 'GitHub environment name to require approval before apply'
         required: false
-        default: 'terraform-apply'
+        type: string
+      oidc_role_arn:
+        description: 'Optional AWS role ARN to assume via GitHub OIDC'
+        required: false
+        type: string
+      role_session_name:
+        description: 'Optional role session name for OIDC assume'
+        required: false
         type: string
 
 jobs:
   call-reusable:
-    uses: ./.github/workflows/terraform-reusable.yml
+    uses: ./.github/workflows/reusable.yml
     with:
       tf_working_dir: access-analyzer
       aws_region: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.aws_region) || 'us-east-1' }}
       terraform_version: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.terraform_version) || '1.5.7' }}
       auto_apply: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apply }}
       apply_environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.apply_environment) || 'terraform-apply' }}
+      oidc_role_arn: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.oidc_role_arn) || secrets.OIDC_ROLE_ARN || '' }}
+      role_session_name: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.role_session_name) || secrets.ROLE_SESSION_NAME || 'gh-actions-terraform' }}
