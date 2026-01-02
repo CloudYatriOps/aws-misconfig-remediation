@@ -30,6 +30,15 @@ on:
         required: false
         type: string
         default: 'terraform-apply'
+    secrets:
+      OIDC_ROLE_ARN:
+        required: false
+      ROLE_SESSION_NAME:
+        required: false
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
 
 jobs:
   plan:
