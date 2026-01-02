@@ -21,13 +21,13 @@ on:
       apply_environment:
         required: false
         type: string
-        default: ''
+        default: 'terraform-apply'
 
 jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      plan-name: tfplan-${{ inputs.tf_working_dir }}
+      plan-name: "tfplan-${{ inputs.tf_working_dir }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,6 +45,9 @@ jobs:
       - name: Terraform Init
         working-directory: ${{ inputs.tf_working_dir }}
         run: terraform init -input=false -no-color
+      - name: Terraform Fmt (check)
+        working-directory: ${{ inputs.tf_working_dir }}
+        run: terraform fmt -check -recursive
 
       - name: Terraform Validate
         working-directory: ${{ inputs.tf_working_dir }}
@@ -52,22 +55,19 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ${{ inputs.tf_working_dir }}
-              - name: Terraform Fmt (check)
-                working-directory: ${{ inputs.tf_working_dir }}
-                run: terraform fmt -check -recursive
         run: terraform plan -input=false -out=tfplan -no-color
 
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ needs.plan.outputs.plan-name }}
+          name: "tfplan-${{ inputs.tf_working_dir }}"
           path: ${{ inputs.tf_working_dir }}/tfplan
 
   apply:
     needs: plan
     runs-on: ubuntu-latest
     if: ${{ inputs.auto_apply == true }}
-    environment: ${{ inputs.apply_environment || 'terraform-apply' }}
+    environment: ${{ inputs.apply_environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
