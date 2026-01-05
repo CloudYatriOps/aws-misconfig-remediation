@@ -30,14 +30,16 @@ on:
         required: false
         type: boolean
         default: false
+      # New input for optional pre-plan commands
       pre_plan_commands:
         required: false
         type: string
         default: ""
-      import_commands:
+    secrets:
+      OIDC_ROLE_ARN:
         required: false
-        type: string
-        default: ""
+      ROLE_SESSION_NAME:
+        required: false
 
 jobs:
   plan:
@@ -57,10 +59,10 @@ jobs:
         id: auth
         run: |
           oidc_input="${{ inputs.oidc_role_arn }}"
-          oidc_secret=""
+          oidc_secret="${{ secrets.OIDC_ROLE_ARN }}"
           session_input="${{ inputs.role_session_name }}"
-          session_secret=""
-        
+          session_secret="${{ secrets.ROLE_SESSION_NAME }}"
+
           if [ -n "$oidc_input" ]; then
             echo "method=oidc" >> "$GITHUB_OUTPUT"
             echo "role_arn=$oidc_input" >> "$GITHUB_OUTPUT"
@@ -70,7 +72,7 @@ jobs:
           else
             echo "method=keys" >> "$GITHUB_OUTPUT"
           fi
-        
+
           if [ -n "$session_input" ]; then
             echo "session_name=$session_input" >> "$GITHUB_OUTPUT"
           elif [ -n "$session_secret" ]; then
@@ -90,14 +92,6 @@ jobs:
       - name: Terraform Init
         working-directory: ${{ inputs.tf_working_dir }}
         run: terraform init -input=false -no-color
-
-      - name: Run Import Commands
-        if: ${{ inputs.import_commands != '' }}
-        working-directory: ${{ inputs.tf_working_dir }}
-        run: |
-          echo "Running import commands..."
-          set -e
-          eval "${{ inputs.import_commands }}"
 
       - name: Run Pre-Plan Commands
         if: ${{ inputs.pre_plan_commands != '' }}
@@ -153,6 +147,7 @@ jobs:
             echo "session_name=$session_secret" >> "$GITHUB_OUTPUT"
           else
             echo "session_name=gh-actions-terraform" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure AWS credentials (OIDC)
         if: ${{ steps.auth_apply.outputs.method == 'oidc' }}
@@ -162,17 +157,6 @@ jobs:
           role-session-name: ${{ steps.auth_apply.outputs.session_name }}
           aws-region: ${{ inputs.aws_region }}
 
-      - name: Download plan artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.plan.outputs.plan-name }}
-          path: ${{ inputs.tf_working_dir }}
-
       - name: Terraform Apply
         working-directory: ${{ inputs.tf_working_dir }}
-        run: |
-          if [ -f tfplan ]; then
-            terraform apply -input=false -auto-approve tfplan -no-color
-          else
-            echo "No plan file found, skipping apply"
-          fi
+        run: terraform apply -input=false -auto-approve tfplan -no-color
