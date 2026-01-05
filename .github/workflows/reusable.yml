@@ -132,4 +132,13 @@ jobs:
           echo "Auto-applying plan in same job to preserve state lineage"
           terraform apply -input=false -auto-approve tfplan -no-color
 
+      - name: Cleanup working directory
+        if: always()
+        run: |
+          echo "Cleaning up ${INPUTS_TF_WORKING_DIR:-${{ inputs.tf_working_dir }}}"
+          rm -rf ${{ inputs.tf_working_dir }}/.terraform || true
+          rm -f ${{ inputs.tf_working_dir }}/tfplan || true
+          rm -f ${{ inputs.tf_working_dir }}/.terraform.lock.hcl || true
+          rm -f ${{ inputs.tf_working_dir }}/preplan.sh || true
+
 
