@@ -112,68 +112,11 @@ jobs:
             ${{ inputs.tf_working_dir }}/tfplan
             ${{ inputs.tf_working_dir }}/.terraform.lock.hcl
 
-  apply:
-    needs: plan
-    runs-on: ubuntu-latest
-    if: ${{ inputs.auto_apply == true }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ inputs.terraform_version }}
-
-      - name: Determine auth method (apply)
-        id: auth_apply
-        run: |
-          oidc_input="${{ inputs.oidc_role_arn }}"
-          oidc_secret="${{ secrets.OIDC_ROLE_ARN }}"
-          session_input="${{ inputs.role_session_name }}"
-          session_secret="${{ secrets.ROLE_SESSION_NAME }}"
-
-          if [ -n "$oidc_input" ]; then
-            echo "method=oidc" >> "$GITHUB_OUTPUT"
-            echo "role_arn=$oidc_input" >> "$GITHUB_OUTPUT"
-          elif [ -n "$oidc_secret" ]; then
-            echo "method=oidc" >> "$GITHUB_OUTPUT"
-            echo "role_arn=$oidc_secret" >> "$GITHUB_OUTPUT"
-          else
-            echo "method=keys" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ -n "$session_input" ]; then
-            echo "session_name=$session_input" >> "$GITHUB_OUTPUT"
-          elif [ -n "$session_secret" ]; then
-            echo "session_name=$session_secret" >> "$GITHUB_OUTPUT"
-          else
-            echo "session_name=gh-actions-terraform" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Configure AWS credentials (OIDC)
-        if: ${{ steps.auth_apply.outputs.method == 'oidc' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ steps.auth_apply.outputs.role_arn }}
-          role-session-name: ${{ steps.auth_apply.outputs.session_name }}
-          aws-region: ${{ inputs.aws_region }}
-
-      - name: Download plan artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.plan.outputs.plan-name }}
-          path: ${{ inputs.tf_working_dir }}
-
-      - name: Verify downloaded plan
-        run: |
-          echo "Listing files in ${{ inputs.tf_working_dir }}"
-          ls -la ${{ inputs.tf_working_dir }}
-
-      - name: Terraform Apply (in-plan job)
+      - name: Terraform Apply (auto-apply)
         if: ${{ inputs.auto_apply == true }}
         working-directory: ${{ inputs.tf_working_dir }}
         run: |
-          echo "Applying plan in same job to preserve state lineage"
-          terraform init -input=false -no-color
+          echo "Auto-applying plan in same job to preserve state lineage"
           terraform apply -input=false -auto-approve tfplan -no-color
+
+
