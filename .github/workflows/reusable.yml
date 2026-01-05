@@ -102,7 +102,12 @@ jobs:
         working-directory: ${{ inputs.tf_working_dir }}
         run: |
           echo "Executing pre-plan commands..."
-          eval "${{ inputs.pre_plan_commands }}"
+          # Write the provided pre-plan commands to a temp script and execute it.
+          cat > preplan.sh <<'PREPLAN_EOF'
+${{ inputs.pre_plan_commands }}
+PREPLAN_EOF
+          chmod +x preplan.sh
+          ./preplan.sh
 
       - name: Terraform Plan
         working-directory: ${{ inputs.tf_working_dir }}
