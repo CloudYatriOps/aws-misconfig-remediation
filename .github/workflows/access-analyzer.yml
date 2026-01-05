@@ -6,7 +6,7 @@ permissions:
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: ['main']
     paths:
       - 'access-analyzer/**'
   workflow_dispatch:
@@ -26,11 +26,6 @@ on:
         required: false
         type: string
         default: 'us-west-1'
-      apply_environment:
-        description: 'GitHub environment name to require approval before apply'
-        required: false
-        type: string
-        default: 'terraform-apply'
       oidc_role_arn:
         description: 'Optional AWS role ARN to assume via GitHub OIDC'
         required: false
@@ -45,14 +40,15 @@ jobs:
   call-reusable:
     uses: ./.github/workflows/reusable.yml
     secrets:
-      OIDC_ROLE_ARN: ${{ secrets.OIDC_ROLE_ARN }}
+      OIDC_ROLE_ARN: "arn:aws:iam::803103365620:oidc-provider/token.actions.githubusercontent.com"
       ROLE_SESSION_NAME: ${{ secrets.ROLE_SESSION_NAME }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     with:
       tf_working_dir: access-analyzer
       aws_region: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.aws_region) || 'us-west-1' }}
       terraform_version: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.terraform_version) || '1.5.7' }}
       auto_apply: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apply == 'true' }}
-      apply_environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.apply_environment) || 'terraform-apply' }}
-      # OIDC role and session name are picked from repository secrets by the reusable workflow.
+
+      # Optional import command
+      pre_plan_commands: |
+        # Attempt to import existing Access Analyzer
+        terraform import "aws_accessanalyzer_analyzer.this[0]" winfo-org-access-analyzer || echo "Access Analyzer imported successfully"

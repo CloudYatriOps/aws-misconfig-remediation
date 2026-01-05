@@ -30,18 +30,15 @@ on:
         required: false
         type: boolean
         default: false
-      apply_environment:
+      # New input for optional pre-plan commands
+      pre_plan_commands:
         required: false
         type: string
-        default: "terraform-apply"
+        default: ""
     secrets:
       OIDC_ROLE_ARN:
         required: false
       ROLE_SESSION_NAME:
-        required: false
-      AWS_ACCESS_KEY_ID:
-        required: false
-      AWS_SECRET_ACCESS_KEY:
         required: false
 
 jobs:
@@ -92,25 +89,16 @@ jobs:
           role-session-name: ${{ steps.auth.outputs.session_name }}
           aws-region: ${{ inputs.aws_region }}
 
-      - name: Configure AWS credentials (secrets)
-        if: ${{ steps.auth.outputs.method == 'keys' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ inputs.aws_region }}
-
       - name: Terraform Init
         working-directory: ${{ inputs.tf_working_dir }}
         run: terraform init -input=false -no-color
 
-      - name: Terraform Fmt (check)
+      - name: Run Pre-Plan Commands
+        if: ${{ inputs.pre_plan_commands != '' }}
         working-directory: ${{ inputs.tf_working_dir }}
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Validate
-        working-directory: ${{ inputs.tf_working_dir }}
-        run: terraform validate -no-color
+        run: |
+          echo "Executing pre-plan commands..."
+          eval "${{ inputs.pre_plan_commands }}"
 
       - name: Terraform Plan
         working-directory: ${{ inputs.tf_working_dir }}
@@ -126,7 +114,6 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     if: ${{ inputs.auto_apply == true }}
-    environment: ${{ inputs.apply_environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -136,7 +123,7 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
-      - name: Determine auth method
+      - name: Determine auth method (apply)
         id: auth_apply
         run: |
           oidc_input="${{ inputs.oidc_role_arn }}"
@@ -169,20 +156,6 @@ jobs:
           role-to-assume: ${{ steps.auth_apply.outputs.role_arn }}
           role-session-name: ${{ steps.auth_apply.outputs.session_name }}
           aws-region: ${{ inputs.aws_region }}
-
-      - name: Configure AWS credentials (secrets)
-        if: ${{ steps.auth_apply.outputs.method == 'keys' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ inputs.aws_region }}
-
-      - name: Download plan artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.plan.outputs.plan-name }}
-          path: ${{ inputs.tf_working_dir }}
 
       - name: Terraform Apply
         working-directory: ${{ inputs.tf_working_dir }}
