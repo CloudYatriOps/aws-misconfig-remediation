@@ -57,10 +57,10 @@ jobs:
         id: auth
         run: |
           oidc_input="${{ inputs.oidc_role_arn }}"
-          oidc_secret="${{ secrets.OIDC_ROLE_ARN }}"
+          oidc_secret=""
           session_input="${{ inputs.role_session_name }}"
-          session_secret="${{ secrets.ROLE_SESSION_NAME }}"
-
+          session_secret=""
+        
           if [ -n "$oidc_input" ]; then
             echo "method=oidc" >> "$GITHUB_OUTPUT"
             echo "role_arn=$oidc_input" >> "$GITHUB_OUTPUT"
@@ -70,13 +70,14 @@ jobs:
           else
             echo "method=keys" >> "$GITHUB_OUTPUT"
           fi
-
+        
           if [ -n "$session_input" ]; then
             echo "session_name=$session_input" >> "$GITHUB_OUTPUT"
           elif [ -n "$session_secret" ]; then
             echo "session_name=$session_secret" >> "$GITHUB_OUTPUT"
           else
             echo "session_name=gh-actions-terraform" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure AWS credentials (OIDC)
         if: ${{ steps.auth.outputs.method == 'oidc' }}
