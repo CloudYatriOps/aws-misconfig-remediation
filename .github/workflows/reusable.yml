@@ -157,6 +157,12 @@ jobs:
           role-session-name: ${{ steps.auth_apply.outputs.session_name }}
           aws-region: ${{ inputs.aws_region }}
 
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: "tfplan-${{ inputs.tf_working_dir }}"
+          path: ${{ inputs.tf_working_dir }}
+
       - name: Terraform Apply
         working-directory: ${{ inputs.tf_working_dir }}
         run: terraform apply -input=false -auto-approve tfplan -no-color
