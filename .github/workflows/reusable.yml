@@ -160,8 +160,13 @@ jobs:
       - name: Download plan artifact
         uses: actions/download-artifact@v4
         with:
-          name: "tfplan-${{ inputs.tf_working_dir }}"
+          name: ${{ needs.plan.outputs.plan-name }}
           path: ${{ inputs.tf_working_dir }}
+
+      - name: Verify downloaded plan
+        run: |
+          echo "Listing files in ${{ inputs.tf_working_dir }}"
+          ls -la ${{ inputs.tf_working_dir }}
 
       - name: Terraform Apply
         working-directory: ${{ inputs.tf_working_dir }}
