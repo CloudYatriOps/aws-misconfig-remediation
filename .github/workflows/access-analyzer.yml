@@ -40,7 +40,7 @@ jobs:
   call-reusable:
     uses: ./.github/workflows/reusable.yml
     secrets:
-      OIDC_ROLE_ARN: "arn:aws:iam::803103365620:oidc-provider/token.actions.githubusercontent.com"
+      OIDC_ROLE_ARN: ${{ secrets.OIDC_ROLE_ARN }}
       ROLE_SESSION_NAME: ${{ secrets.ROLE_SESSION_NAME }}
     with:
       tf_working_dir: access-analyzer
