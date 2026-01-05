@@ -3,7 +3,7 @@
 # Uses `var.region` and `var.aws_profile` to target the desired region.
 ########################################
 provider "aws" {
-  region  = var.region
+  region = var.region
   #profile = var.aws_profile
 }
 
