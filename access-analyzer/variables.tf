@@ -16,8 +16,8 @@ variable "tags" {
   default     = {}
 }
 
-variable "aws_profile" {
-  description = "AWS CLI profile to use"
-  type        = string
-  default     = "AdministratorAccess-803103365620"
-}
+#variable "aws_profile" {
+#  description = "AWS CLI profile to use"
+#  type        = string
+#  default     = "AdministratorAccess-803103365620"
+#}
