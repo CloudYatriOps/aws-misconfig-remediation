@@ -10,7 +10,6 @@ terraform {
 
 provider "aws" {
   region  = var.region
-  profile = "AdministratorAccess-803103365620"
 }
 
 resource "aws_vpc" "vpc" {

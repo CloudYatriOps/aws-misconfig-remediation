@@ -79,9 +79,10 @@ jobs:
           IFS=',' read -ra CIDRS <<< "$cidr_list"
           idx=0
           for raw in "${CIDRS[@]}"; do
-            cidr=$(echo "$raw" | sed -E 's/^ *"?(.*)"? *$/\1/')
+            # Clean the CIDR string: remove quotes, CRLF, and trim whitespace
+            cidr=$(echo "$raw" | tr -d '"' | tr -d '\r' | xargs)
             echo "Looking up subnet for CIDR: $cidr"
-            subnet_id=$(aws ec2 describe-subnets --filters Name=cidr-block,Values="$cidr" --query 'Subnets[0].SubnetId' --output text || true)
+            subnet_id=$(aws ec2 describe-subnets --filters Name=cidr-block,Values=$cidr --query 'Subnets[0].SubnetId' --output text || true)
             if [ -n "$subnet_id" ] && [ "$subnet_id" != "None" ]; then
               echo "Importing subnet $subnet_id as aws_subnet.subnet[$idx]"
               terraform import "aws_subnet.subnet[$idx]" "$subnet_id" || echo "Subnet import failed or already imported"
