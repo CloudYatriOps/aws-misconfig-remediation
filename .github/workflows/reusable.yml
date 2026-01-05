@@ -170,10 +170,10 @@ jobs:
           echo "Listing files in ${{ inputs.tf_working_dir }}"
           ls -la ${{ inputs.tf_working_dir }}
 
-      - name: Terraform Init (apply)
+      - name: Terraform Apply (in-plan job)
+        if: ${{ inputs.auto_apply == true }}
         working-directory: ${{ inputs.tf_working_dir }}
-        run: terraform init -input=false -no-color
-
-      - name: Terraform Apply
-        working-directory: ${{ inputs.tf_working_dir }}
-        run: terraform apply -input=false -auto-approve tfplan -no-color
+        run: |
+          echo "Applying plan in same job to preserve state lineage"
+          terraform init -input=false -no-color
+          terraform apply -input=false -auto-approve tfplan -no-color
