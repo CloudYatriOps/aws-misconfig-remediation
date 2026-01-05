@@ -1,5 +1,9 @@
 name: "ec2-auto_assign_ipv4_off"
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   push:
     branches: [ 'main' ]
@@ -11,18 +15,22 @@ on:
         description: 'Apply changes after plan'
         required: false
         type: boolean
+        default: false
       terraform_version:
         description: 'Terraform version to use'
         required: false
         type: string
+        default: '1.5.7'
       aws_region:
         description: 'AWS region to use'
         required: false
         type: string
+        default: 'us-west-2'
       apply_environment:
         description: 'GitHub environment name to require approval before apply'
         required: false
         type: string
+        default: 'terraform-apply'
       oidc_role_arn:
         description: 'Optional AWS role ARN to assume via GitHub OIDC'
         required: false
@@ -31,6 +39,7 @@ on:
         description: 'Optional role session name for OIDC assume'
         required: false
         type: string
+        default: ''
 
 jobs:
   call-reusable:
@@ -44,6 +53,56 @@ jobs:
       tf_working_dir: ec2-auto_assign_ipv4_off
       aws_region: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.aws_region) || 'us-west-2' }}
       terraform_version: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.terraform_version) || '1.5.7' }}
-      auto_apply: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apply }}
+      auto_apply: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apply == 'true' }}
       apply_environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.apply_environment) || 'terraform-apply' }}
       # OIDC role and session name are picked from repository secrets by the reusable workflow.
+      pre_plan_commands: |
+        # Parse terraform.tfvars and import existing VPC and subnets by CIDR
+        set -e
+        echo "Attempting to import VPC and subnets based on terraform.tfvars"
+
+        # Extract VPC CIDR
+        vpc_cidr=$(grep -E '^vpc_cidr' terraform.tfvars | sed -E 's/.*= *"([^"]+)".*/\1/' || true)
+        if [ -n "$vpc_cidr" ]; then
+          echo "Found vpc_cidr=$vpc_cidr"
+          vpc_id=$(aws ec2 describe-vpcs --filters Name=cidr,Values="$vpc_cidr" --query 'Vpcs[0].VpcId' --output text || true)
+          if [ -n "$vpc_id" ] && [ "$vpc_id" != "None" ]; then
+            echo "Importing VPC $vpc_id as aws_vpc.vpc"
+            terraform import aws_vpc.vpc "$vpc_id" || echo "VPC import failed or already imported"
+          else
+            echo "No VPC found for CIDR $vpc_cidr; skipping VPC import"
+          fi
+        else
+          echo "No vpc_cidr found in terraform.tfvars; skipping VPC import"
+        fi
+
+        # Extract subnet CIDRs array and import each subnet by CIDR
+        subnet_line=$(grep -E '^subnet_cidrs' terraform.tfvars || true)
+        if [ -n "$subnet_line" ]; then
+          # Get contents between [ and ]
+          cidr_list=$(echo "$subnet_line" | sed -E 's/^[^=]*= *\[(.*)\].*/\1/')
+          # Split on commas
+          IFS=',' read -ra CIDRS <<< "$cidr_list"
+          idx=0
+          for raw in "${CIDRS[@]}"; do
+            cidr=$(echo "$raw" | sed -E 's/^ *"?(.*)"? *$/\1/')
+            echo "Looking up subnet for CIDR: $cidr"
+            subnet_id=$(aws ec2 describe-subnets --filters Name=cidr-block,Values="$cidr" --query 'Subnets[0].SubnetId' --output text || true)
+            if [ -n "$subnet_id" ] && [ "$subnet_id" != "None" ]; then
+              echo "Importing subnet $subnet_id as aws_subnet.subnet[$idx]"
+              terraform import "aws_subnet.subnet[$idx]" "$subnet_id" || echo "Subnet import failed or already imported"
+            else
+              echo "No subnet found for CIDR $cidr; skipping"
+            fi
+            idx=$((idx+1))
+          done
+        else
+          echo "No subnet_cidrs line found in terraform.tfvars; skipping subnet imports"
+        fi
+
+      # pre_plan_commands: |
+        # terraform import aws_vpc.vpc vpc-0acec743b1bd7bf64
+        # terraform import aws_subnet.subnet[0] subnet-07d3f5dca35792e97
+        # terraform import aws_subnet.subnet[1] subnet-0c067b66acfca9c0b
+        # terraform import aws_subnet.subnet[2] subnet-04136e92be7f3c6d9
+        # terraform import aws_subnet.subnet[3] subnet-007dc81a7a353fd0a
