@@ -104,8 +104,12 @@ jobs:
           echo "Executing pre-plan commands..."
           # Write the provided pre-plan commands to a temp script and execute it.
           cat > preplan.sh <<'PREPLAN_EOF'
-${{ inputs.pre_plan_commands }}
-PREPLAN_EOF
+          #!/usr/bin/env bash
+          set -e
+          ${{ inputs.pre_plan_commands }}
+          PREPLAN_EOF
+          # Normalize line endings (in case the input contains CRLF)
+          sed -i 's/\r$//' preplan.sh || true
           chmod +x preplan.sh
           ./preplan.sh
 
